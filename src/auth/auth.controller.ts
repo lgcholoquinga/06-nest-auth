@@ -3,14 +3,13 @@ import {
   Get,
   Post,
   Body,
-  Patch,
-  Param,
-  Delete,
+  UseGuards,
+  Request,
 } from '@nestjs/common';
 import { AuthService } from './auth.service';
-import { CreateUserDto } from './dto/create-user.dto';
-import { UpdateAuthDto } from './dto/update-auth.dto';
-import { LoginDto } from './dto/login.dto';
+import { CreateUserDto, LoginDto, RegisterUserDto } from './dto';
+import { AuthGuard } from './guards/auth.guard';
+import { LoginResponse } from './interfaces/login-response.interface';
 
 @Controller('auth')
 export class AuthController {
@@ -26,23 +25,26 @@ export class AuthController {
     return this.authService.login(loginDto);
   }
 
-  @Get()
-  findAll() {
+  @Post('/register')
+  register(@Body() registerDto: RegisterUserDto) {
+    return this.authService.register(registerDto);
+  }
+
+  @UseGuards(AuthGuard)
+  @Get('/users')
+  findAll(@Request() req: Request) {
+    const user = req['user'];
+    return user;
     return this.authService.findAll();
   }
 
-  @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.authService.findOne(+id);
-  }
-
-  @Patch(':id')
-  update(@Param('id') id: string, @Body() updateAuthDto: UpdateAuthDto) {
-    return this.authService.update(+id, updateAuthDto);
-  }
-
-  @Delete(':id')
-  remove(@Param('id') id: string) {
-    return this.authService.remove(+id);
+  @UseGuards(AuthGuard)
+  @Get('/check-token')
+  checkToken(@Request() req: Request): LoginResponse {
+    const user = req['user'];
+    return {
+      user,
+      token: this.authService.getJWT({ id: user.id }),
+    };
   }
 }
